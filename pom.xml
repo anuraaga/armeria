@@ -221,6 +221,13 @@
     </dependency>
 
     <!-- Test-time dependencies -->
+    <!-- Jetty, for verifying integration with official thrift library's TServlet -->
+    <dependency>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-servlet</artifactId>
+      <version>9.3.6.v20151106</version>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
