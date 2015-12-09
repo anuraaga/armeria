@@ -56,7 +56,9 @@ public enum SerializationFormat {
      * Thrift TText serialization format. This format is not optimized for performance or backwards
      * compatibility and should only be used in non-production use cases like debugging.
      */
-    THRIFT_TEXT("ttext", "application/x-thrift; protocol=TTEXT");
+    THRIFT_TEXT("ttext", "application/x-thrift; protocol=TTEXT"),
+
+    JSON("json", "application/json");
 
     private static final Set<SerializationFormat> THRIFT_FORMATS = Collections.unmodifiableSet(
             EnumSet.of(THRIFT_BINARY, THRIFT_COMPACT, THRIFT_JSON, THRIFT_TEXT));

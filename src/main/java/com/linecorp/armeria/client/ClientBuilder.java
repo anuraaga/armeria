@@ -27,6 +27,8 @@ import java.util.List;
 import org.apache.thrift.protocol.TProtocolFactory;
 
 import com.linecorp.armeria.client.http.SimpleHttpClientCodec;
+import com.linecorp.armeria.client.rest.RestClientCodec;
+import com.linecorp.armeria.client.rest.annotations.RestInterface;
 import com.linecorp.armeria.client.thrift.ThriftClientCodec;
 import com.linecorp.armeria.common.Scheme;
 import com.linecorp.armeria.common.SerializationFormat;
@@ -127,6 +129,10 @@ public final class ClientBuilder {
         if (SerializationFormat.ofThrift().contains(serializationFormat)) {
             TProtocolFactory protocolFactory = ThriftProtocolFactories.get(serializationFormat);
             return new ThriftClientCodec(uri, interfaceClass, protocolFactory);
+        }
+
+        if (interfaceClass.isAnnotationPresent(RestInterface.class)) {
+            return new RestClientCodec(uri.getHost(), serializationFormat);
         }
 
         if (SessionProtocol.ofHttp().contains(sessionProtocol) &&
