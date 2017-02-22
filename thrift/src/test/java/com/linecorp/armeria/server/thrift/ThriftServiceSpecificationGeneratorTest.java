@@ -101,8 +101,8 @@ public class ThriftServiceSpecificationGeneratorTest {
 
         final ServiceSpecification specification = generator.generate(
                 ImmutableSet.of(helloService, fooService),
-                ImmutableMap.of(HelloService.class, ImmutableList.of(helloExampleHeaders),
-                                FooService.class,   ImmutableList.of(fooExampleHeaders)));
+                ImmutableMap.of(HelloService.class.getCanonicalName(), ImmutableList.of(helloExampleHeaders),
+                                FooService.class.getCanonicalName(),   ImmutableList.of(fooExampleHeaders)));
 
         final Map<String, ServiceInfo> services = specification.services();
         assertThat(services).containsOnlyKeys(HelloService.class.getName(), FooService.class.getName());
