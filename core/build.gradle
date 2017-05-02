@@ -34,9 +34,13 @@ task trimShadedJar(type: ProGuardTask,
                    group: 'Build',
                    description: 'Shrinks the shaded JAR by removing unused classes.') {
 
+    Set dependencyJars = []
     publishedJavaProjects.each {
         dependsOn it.tasks.shadedJar
         dependsOn it.tasks.shadedTestJar
+        it.afterEvaluate {
+            dependencyJars.addAll(it.configurations.runtime.collect())
+        }
     }
 
     def shadedFile = tasks.shadedJar.archivePath
@@ -61,7 +65,9 @@ task trimShadedJar(type: ProGuardTask,
         }
     }
 
-    libraryjars files(configurations.runtime.collect())
+    dependencyJars.addAll(configurations.runtime.collect())
+
+    libraryjars files(dependencyJars)
     libraryjars file("${System.getProperty('java.home')}/lib/rt.jar")
 
     dontoptimize
