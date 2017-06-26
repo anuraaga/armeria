@@ -33,5 +33,7 @@ final class Http2ServerConnectionHandler extends AbstractHttp2ConnectionHandler 
     }
 
     @Override
-    protected void onCloseRequest(ChannelHandlerContext ctx) throws Exception {}
+    protected void onCloseRequest(ChannelHandlerContext ctx) throws Exception {
+        System.out.println(ctx);
+    }
 }

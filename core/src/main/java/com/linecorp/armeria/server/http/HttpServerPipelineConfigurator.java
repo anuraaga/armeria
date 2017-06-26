@@ -112,6 +112,7 @@ public final class HttpServerPipelineConfigurator extends ChannelInitializer<Cha
 
     private void configureRequestCountingHandlers(ChannelPipeline p) {
         if (config.idleTimeoutMillis() > 0) {
+            System.out.println("Adding idle timeout handler!");
             p.addFirst(new HttpServerIdleTimeoutHandler(config.idleTimeoutMillis()));
         }
     }
@@ -168,6 +169,7 @@ public final class HttpServerPipelineConfigurator extends ChannelInitializer<Cha
 
 
         private void addHttp2Handlers(ChannelHandlerContext ctx) {
+            System.out.println("Adding http2 handlers!");
             final ChannelPipeline p = ctx.pipeline();
             p.addLast(newHttp2ConnectionHandler(p));
             configureRequestCountingHandlers(p);
@@ -233,6 +235,7 @@ public final class HttpServerPipelineConfigurator extends ChannelInitializer<Cha
 
         private void configureHttp2(ChannelHandlerContext ctx) {
             final ChannelPipeline p = ctx.pipeline();
+            System.out.println("Adding http/2 handlers for preface!");
             addAfter(p, name, newHttp2ConnectionHandler(p));
         }
 

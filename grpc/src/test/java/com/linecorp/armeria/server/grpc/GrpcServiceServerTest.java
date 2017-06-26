@@ -30,11 +30,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.DisableOnDebug;
-import org.junit.rules.TestRule;
-import org.junit.rules.Timeout;
 
 import com.google.common.base.Strings;
 import com.google.common.primitives.Bytes;
@@ -77,6 +73,7 @@ import io.grpc.ManagedChannelBuilder;
 import io.grpc.Status;
 import io.grpc.Status.Code;
 import io.grpc.StatusRuntimeException;
+import io.grpc.okhttp.OkHttpChannelBuilder;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import io.netty.util.AsciiString;
@@ -220,8 +217,8 @@ public class GrpcServiceServerTest {
         }
     };
 
-    @Rule
-    public TestRule globalTimeout = new DisableOnDebug(new Timeout(10, TimeUnit.SECONDS));
+    //@Rule
+    //public TestRule globalTimeout = new DisableOnDebug(new Timeout(10, TimeUnit.SECONDS));
 
     private static ManagedChannel channel;
 
@@ -230,9 +227,11 @@ public class GrpcServiceServerTest {
 
     @BeforeClass
     public static void setUpChannel() {
-        channel = ManagedChannelBuilder.forAddress("127.0.0.1", server.httpPort())
-                                       .usePlaintext(true)
-                                       .build();
+        channel = OkHttpChannelBuilder.forAddress("127.0.0.1", server.httpPort())
+                                      .usePlaintext(true)
+                                      .idleTimeout(600, TimeUnit.SECONDS)
+                                      .keepAliveTimeout(600, TimeUnit.SECONDS)
+                                      .build();
     }
 
     @AfterClass
@@ -242,7 +241,7 @@ public class GrpcServiceServerTest {
 
     @Before
     public void setUp() {
-        blockingClient = UnitTestServiceGrpc.newBlockingStub(channel);
+        blockingClient = UnitTestServiceGrpc.newBlockingStub(channel).withDeadlineAfter(600, TimeUnit.SECONDS);
         streamingClient = UnitTestServiceGrpc.newStub(channel);
     }
 
@@ -505,5 +504,12 @@ public class GrpcServiceServerTest {
         SimpleResponse response = jsonStub.staticUnaryCall(REQUEST_MESSAGE);
         assertThat(response).isEqualTo(RESPONSE_MESSAGE);
         assertThat(requestHeaders.get().get(HttpHeaderNames.CONTENT_TYPE)).isEqualTo("application/grpc+json");
+    }
+
+    @Test
+    public void idleTimeout() throws Exception {
+        assertThat(blockingClient.staticUnaryCall(REQUEST_MESSAGE)).isEqualTo(RESPONSE_MESSAGE);
+        Thread.sleep(TimeUnit.SECONDS.toMillis(20));
+        assertThat(blockingClient.staticUnaryCall(REQUEST_MESSAGE)).isEqualTo(RESPONSE_MESSAGE);
     }
 }

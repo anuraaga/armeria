@@ -114,6 +114,7 @@ public abstract class AbstractHttp2ConnectionHandler extends Http2ConnectionHand
 
     @Override
     public void close(ChannelHandlerContext ctx, ChannelPromise promise) throws Exception {
+        System.out.println("Closing the HTTP/2 connection!" + ctx);
         closing = true;
 
         // TODO(trustin): Remove this line once https://github.com/netty/netty/issues/4210 is fixed.

@@ -67,10 +67,8 @@ public class Http2GoAwayListener extends Http2ConnectionAdapter {
                             debugData.toString(StandardCharsets.UTF_8));
             }
         } else {
-            if (logger.isDebugEnabled()) {
                 logger.debug("{} {} a GOAWAY frame: lastStreamId={}, errorCode=NO_ERROR",
                              ch, sentOrReceived, lastStreamId);
-            }
         }
     }
 
