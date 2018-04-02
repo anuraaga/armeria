@@ -176,7 +176,7 @@ public class ArmeriaMessageDeframer implements AutoCloseable {
     private boolean compressedFlag;
     private boolean endOfStream;
     @Nullable
-    private CompositeByteBuf nextFrame;
+    private ByteBuf nextFrame;
     @Nullable
     private CompositeByteBuf unprocessed;
     private long pendingDeliveries;
@@ -357,7 +357,7 @@ public class ArmeriaMessageDeframer implements AutoCloseable {
      */
     private boolean readRequiredBytes() {
         if (nextFrame == null) {
-            nextFrame = alloc.compositeBuffer();
+            nextFrame = alloc.buffer(requiredLength);
         }
 
         // Read until the buffer contains all the required bytes.
@@ -370,7 +370,7 @@ public class ArmeriaMessageDeframer implements AutoCloseable {
             }
             final int toRead = Math.min(missingBytes, numUnprocessedBytes);
             if (toRead > 0) {
-                nextFrame.addComponent(true, unprocessed.readBytes(toRead));
+                nextFrame.writeBytes(unprocessed, toRead);
                 unprocessed.discardReadComponents();
             }
         }
@@ -418,7 +418,7 @@ public class ArmeriaMessageDeframer implements AutoCloseable {
     }
 
     private ByteBufOrStream getUncompressedBody() {
-        return new ByteBufOrStream(nextFrame.consolidate());
+        return new ByteBufOrStream(nextFrame);
     }
 
     private ByteBufOrStream getCompressedBody() {
