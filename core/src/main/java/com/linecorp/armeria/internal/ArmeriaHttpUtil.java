@@ -63,6 +63,7 @@ import com.linecorp.armeria.common.HttpHeaders;
 import com.linecorp.armeria.common.HttpMethod;
 import com.linecorp.armeria.common.HttpStatus;
 import com.linecorp.armeria.common.HttpStatusClass;
+import com.linecorp.armeria.common.WrappedHttp2Headers;
 
 import io.netty.handler.codec.DefaultHeaders;
 import io.netty.handler.codec.UnsupportedValueConverter;
@@ -272,29 +273,20 @@ public final class ArmeriaHttpUtil {
      * Converts the specified Netty HTTP/2 into Armeria HTTP/2 headers.
      */
     public static HttpHeaders toArmeria(Http2Headers headers) {
-        final HttpHeaders converted = new DefaultHttpHeaders(false, headers.size());
-        StringJoiner cookieJoiner = null;
-        for (Entry<CharSequence, CharSequence> e : headers) {
-            final AsciiString name = AsciiString.of(e.getKey());
-            final CharSequence value = e.getValue();
-
-            // Cookies must be concatenated into a single octet string.
-            // https://tools.ietf.org/html/rfc7540#section-8.1.2.5
-            if (name.equals(HttpHeaderNames.COOKIE)) {
-                if (cookieJoiner == null) {
-                    cookieJoiner = new StringJoiner(COOKIE_SEPARATOR);
-                }
-                COOKIE_SPLITTER.split(value).forEach(cookieJoiner::add);
+        final List<CharSequence> cookies = headers.getAllAndRemove(HttpHeaderNames.COOKIE);
+        if (!cookies.isEmpty()) {
+            if (cookies.size() == 1) {
+                headers.set(HttpHeaderNames.COOKIE, cookies.get(0));
             } else {
-                converted.add(name, convertHeaderValue(name, value));
+                final StringJoiner cookieJoiner = new StringJoiner(COOKIE_SEPARATOR);
+                for (CharSequence cookie : cookies) {
+                    COOKIE_SPLITTER.split(cookie).forEach(cookieJoiner::add);
+                }
+                headers.set(HttpHeaderNames.COOKIE, cookieJoiner.toString());
             }
         }
 
-        if (cookieJoiner != null && cookieJoiner.length() != 0) {
-            converted.add(HttpHeaderNames.COOKIE, cookieJoiner.toString());
-        }
-
-        return converted;
+        return new WrappedHttp2Headers(headers, false);
     }
 
     /**
@@ -609,7 +601,11 @@ public final class ArmeriaHttpUtil {
         }
     }
 
-    private static String convertHeaderValue(AsciiString name, CharSequence value) {
+    @Nullable
+    public static String convertHeaderValue(AsciiString name, @Nullable CharSequence value) {
+        if (value == null) {
+            return null;
+        }
         if (!(value instanceof AsciiString)) {
             return value.toString();
         }
