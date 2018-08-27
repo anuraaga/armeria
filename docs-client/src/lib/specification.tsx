@@ -173,7 +173,12 @@ export class Specification {
   }
 
   private getTypeLink(name: string, type: 'enum' | 'struct') {
-    return <Link to={`/${type}s/${name}`}>{simpleName(name)}</Link>;
+    const url = `/${type}s/${name}`;
+    return (
+      <Link key={url} to={url}>
+        {simpleName(name)}
+      </Link>
+    );
   }
 
   private updateDocStrings() {
