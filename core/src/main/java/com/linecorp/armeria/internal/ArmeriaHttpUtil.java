@@ -316,29 +316,7 @@ public final class ArmeriaHttpUtil {
      * Converts the specified Netty HTTP/2 into Armeria HTTP/2 headers.
      */
     public static HttpHeaders toArmeria(Http2Headers headers, boolean endOfStream) {
-        final HttpHeaders converted = new DefaultHttpHeaders(false, headers.size(), endOfStream);
-        StringJoiner cookieJoiner = null;
-        for (Entry<CharSequence, CharSequence> e : headers) {
-            final AsciiString name = AsciiString.of(e.getKey());
-            final CharSequence value = e.getValue();
-
-            // Cookies must be concatenated into a single octet string.
-            // https://tools.ietf.org/html/rfc7540#section-8.1.2.5
-            if (name.equals(HttpHeaderNames.COOKIE)) {
-                if (cookieJoiner == null) {
-                    cookieJoiner = new StringJoiner(COOKIE_SEPARATOR);
-                }
-                COOKIE_SPLITTER.split(value).forEach(cookieJoiner::add);
-            } else {
-                converted.add(name, convertHeaderValue(name, value));
-            }
-        }
-
-        if (cookieJoiner != null && cookieJoiner.length() != 0) {
-            converted.add(HttpHeaderNames.COOKIE, cookieJoiner.toString());
-        }
-
-        return converted;
+        return new DefaultHttpHeaders(headers, endOfStream);
     }
 
     /**
@@ -572,6 +550,10 @@ public final class ArmeriaHttpUtil {
      * Converts the specified Armeria HTTP/2 headers into Netty HTTP/2 headers.
      */
     public static Http2Headers toNettyHttp2(HttpHeaders in) {
+        if (in instanceof DefaultHttpHeaders) {
+            return ((DefaultHttpHeaders) in).toNetty();
+        }
+
         final Http2Headers out = new DefaultHttp2Headers(false, in.size());
         out.set(in);
         out.remove(HttpHeaderNames.CONNECTION);
