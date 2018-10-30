@@ -205,7 +205,8 @@ public final class DefaultHttpHeaders implements HttpHeaders {
     @Override
     @Nullable
     public String get(AsciiString name) {
-        return delegate.get(name).toString();
+        final CharSequence value = delegate.get(name);
+        return value != null ? value.toString() : null;
     }
 
     @Override
@@ -216,12 +217,14 @@ public final class DefaultHttpHeaders implements HttpHeaders {
     @Override
     @Nullable
     public String getAndRemove(AsciiString name) {
-        return delegate.getAndRemove(name).toString();
+        final CharSequence value = delegate.getAndRemove(name);
+        return value != null ? value.toString() : null;
     }
 
     @Override
     public String getAndRemove(AsciiString name, String defaultValue) {
-        return delegate.getAndRemove(name, defaultValue).toString();
+        final CharSequence value = delegate.getAndRemove(name, defaultValue);
+        return value != null ? value.toString() : null;
     }
 
     @Override
