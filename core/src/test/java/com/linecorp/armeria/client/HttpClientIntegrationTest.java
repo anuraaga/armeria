@@ -31,6 +31,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Collections;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.IntFunction;
 
@@ -333,7 +334,7 @@ class HttpClientIntegrationTest {
                 return HttpResponse.of(HttpStatus.INTERNAL_SERVER_ERROR);
             });
 
-            sb.service("/client-timeout", (ctx, req) -> {
+            sb.service("/client-aborted", (ctx, req) -> {
                 // Don't need to return a real response since the client will timeout.
                 return HttpResponse.streaming();
             });
@@ -745,6 +746,17 @@ class HttpClientIntegrationTest {
         assertEquals(HttpStatus.OK, response.status());
 
         clientFactory.close();
+    }
+
+    @Test
+    void abortWithException() {
+        final HttpClient client = HttpClient.of(server.httpUri("/"));
+        final HttpRequest request = HttpRequest.streaming(HttpMethod.GET, "/client-aborted");
+        final HttpResponse response = client.execute(request);
+        request.abort(new IllegalStateException("bad state"));
+        assertThatThrownBy(() -> response.aggregate().join())
+                .isInstanceOf(CompletionException.class)
+                .hasCauseInstanceOf(IllegalStateException.class);
     }
 
     @Nested
