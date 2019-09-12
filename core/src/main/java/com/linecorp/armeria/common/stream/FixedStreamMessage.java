@@ -144,7 +144,7 @@ abstract class FixedStreamMessage<T> extends AbstractStreamMessage<T> {
         }
 
         final SubscriptionImpl newSubscription = new SubscriptionImpl(
-                this, AbortingSubscriber.get(), ImmediateEventExecutor.INSTANCE, false, false);
+                this, AbortingSubscriber.get(error), ImmediateEventExecutor.INSTANCE, false, false);
         subscriptionUpdater.compareAndSet(this, null, newSubscription);
         cancelOrAbort(false, error);
     }

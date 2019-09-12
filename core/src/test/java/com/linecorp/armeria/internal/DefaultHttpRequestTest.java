@@ -111,9 +111,9 @@ class DefaultHttpRequestTest {
     }
 
     @Test
-    void requestClosePropagatesException() {
+    void requestAbortPropagatesException() {
         HttpRequestWriter req = HttpRequest.streaming(HttpMethod.GET, "/");
-        req.close(new IllegalStateException("closed"));
+        req.abort(new IllegalStateException("closed"));
         assertThatThrownBy(() -> req.aggregate().join())
                 .isInstanceOf(CompletionException.class)
                 .hasCauseInstanceOf(IllegalStateException.class);

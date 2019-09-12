@@ -592,12 +592,12 @@ public abstract class AbstractStreamMessageDuplicator<T, U extends StreamMessage
             }
 
             final DownstreamSubscription<T> newSubscription = new DownstreamSubscription<>(
-                    this, AbortingSubscriber.get(), processor, ImmediateEventExecutor.INSTANCE,
+                    this, AbortingSubscriber.get(error), processor, ImmediateEventExecutor.INSTANCE,
                     false, false, false);
             if (subscriptionUpdater.compareAndSet(this, null, newSubscription)) {
                 newSubscription.completionFuture().completeExceptionally(AbortedStreamException.get());
             } else {
-                subscription.abort();
+                subscription.abort(error);
             }
         }
     }

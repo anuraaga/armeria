@@ -16,19 +16,37 @@
 
 package com.linecorp.armeria.common.stream;
 
+import javax.annotation.Nullable;
+
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
+import com.linecorp.armeria.common.Flags;
+
 final class AbortingSubscriber<T> implements Subscriber<T> {
 
-    private static final AbortingSubscriber<Object> INSTANCE = new AbortingSubscriber<>();
+    private static final AbortingSubscriber<Object> INSTANCE = new AbortingSubscriber<>(null);
 
     @SuppressWarnings("unchecked")
-    static <T> AbortingSubscriber<T> get() {
-        return (AbortingSubscriber<T>) INSTANCE;
+    static <T> AbortingSubscriber<T> get(Throwable error) {
+        if (error instanceof AbortedStreamException && !Flags.verboseExceptions()) {
+            // With verboseExceptions off, AbortedStreamException is a singleton so this subscriber can be too.
+            return (AbortingSubscriber<T>) INSTANCE;
+        } else {
+            return new AbortingSubscriber<>(error);
+        }
     }
 
-    private AbortingSubscriber() {}
+    @Nullable
+    private final Throwable error;
+
+    private AbortingSubscriber(@Nullable Throwable error) {
+        this.error = error;
+    }
+
+    Throwable getError() {
+        return error != null ? error : AbortedStreamException.get();
+    }
 
     @Override
     public void onSubscribe(Subscription s) {

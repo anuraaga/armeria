@@ -210,7 +210,7 @@ public class PublisherBasedStreamMessage<T> implements StreamMessage<T> {
             return;
         }
 
-        final AbortableSubscriber abortable = new AbortableSubscriber(this, AbortingSubscriber.get(),
+        final AbortableSubscriber abortable = new AbortableSubscriber(this, AbortingSubscriber.get(error),
                                                                       ImmediateEventExecutor.INSTANCE,
                                                                       false);
         if (!subscriberUpdater.compareAndSet(this, null, abortable)) {
@@ -233,7 +233,8 @@ public class PublisherBasedStreamMessage<T> implements StreamMessage<T> {
         private final EventExecutor executor;
         private boolean notifyCancellation;
         private Subscriber<Object> subscriber;
-        private volatile boolean abortPending;
+        @Nullable
+        private volatile Throwable pendingAbortError;
         @Nullable
         private volatile Subscription subscription;
 
@@ -260,11 +261,11 @@ public class PublisherBasedStreamMessage<T> implements StreamMessage<T> {
             assert subscription != null;
 
             // Don't cancel but just abort if abort is pending.
-            cancelOrAbort(!abortPending, null);
+            cancelOrAbort(pendingAbortError == null, pendingAbortError);
         }
 
         void abort(Throwable error) {
-            abortPending = true;
+            pendingAbortError = error;
             if (subscription != null) {
                 cancelOrAbort(false, error);
             }
@@ -321,8 +322,8 @@ public class PublisherBasedStreamMessage<T> implements StreamMessage<T> {
                 this.subscription = subscription;
                 subscriber.onSubscribe(this);
             } finally {
-                if (abortPending) {
-                    cancelOrAbort0(false, null);
+                if (pendingAbortError != null) {
+                    cancelOrAbort0(false, pendingAbortError);
                 }
             }
         }
