@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
@@ -107,6 +108,15 @@ class DefaultHttpRequestTest {
             // Trailers
             assertThat(aggregated.trailers()).isEqualTo(HttpHeaders.of(HttpHeaderNames.of("a"), "b"));
         });
+    }
+
+    @Test
+    void requestClosePropagatesException() {
+        HttpRequestWriter req = HttpRequest.streaming(HttpMethod.GET, "/");
+        req.close(new IllegalStateException("closed"));
+        assertThatThrownBy(() -> req.aggregate().join())
+                .isInstanceOf(CompletionException.class)
+                .hasCauseInstanceOf(IllegalStateException.class);
     }
 
     private static class ParametersProvider implements ArgumentsProvider {

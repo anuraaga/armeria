@@ -31,10 +31,12 @@ import com.linecorp.armeria.client.endpoint.EndpointSelector;
 import com.linecorp.armeria.common.ContentTooLargeException;
 import com.linecorp.armeria.common.HttpHeaders;
 import com.linecorp.armeria.common.HttpRequest;
+import com.linecorp.armeria.common.HttpRequestWriter;
 import com.linecorp.armeria.common.Request;
 import com.linecorp.armeria.common.RequestContext;
 import com.linecorp.armeria.common.Response;
 import com.linecorp.armeria.common.RpcRequest;
+import com.linecorp.armeria.common.TimeoutException;
 import com.linecorp.armeria.common.logging.RequestLog;
 
 import io.netty.util.Attribute;
@@ -213,6 +215,22 @@ public interface ClientRequestContext extends RequestContext {
      * {@link ClientOption#RESPONSE_TIMEOUT_MILLIS}.
      */
     long responseTimeoutMillis();
+
+    /**
+     * Sets a handler to run when the response times out. {@code responseTimeoutHandler} must close the request,
+     * e.g., by calling {@link HttpRequestWriter#close(Throwable)}. If not set, the response will be closed with
+     * {@link TimeoutException}.
+     *
+     * <p>For example,
+     * <pre>{@code
+     *   HttpRequestWriter req = HttpRequest.streaming();
+     *   ctx.setResponseTimeoutHandler(() -> {
+     *      req.close(new IllegalStateException("Server is in a bad state."));
+     *   });
+     *   ...
+     * }</pre>
+     */
+    void setResponseTimeoutHandler(Runnable responseTimeoutHandler);
 
     /**
      * Sets the amount of time allowed until receiving the {@link Response} completely
