@@ -275,7 +275,7 @@ public class DeferredStreamMessage<T> extends AbstractStreamMessage<T> {
     }
 
     @Override
-    public void abort() {
+    public void abort(Throwable error) {
         if (!abortPendingUpdater.compareAndSet(this, 0, 1)) {
             return;
         }
@@ -286,7 +286,7 @@ public class DeferredStreamMessage<T> extends AbstractStreamMessage<T> {
 
         final StreamMessage<T> delegate = this.delegate;
         if (delegate != null) {
-            delegate.abort();
+            delegate.abort(error);
         } else {
             if (subscription.needsDirectInvocation()) {
                 ABORTED_CLOSE.notifySubscriber(subscription, completionFuture());

@@ -584,7 +584,7 @@ public abstract class AbstractStreamMessageDuplicator<T, U extends StreamMessage
         }
 
         @Override
-        public void abort() {
+        public void abort(Throwable error) {
             final DownstreamSubscription<T> currentSubscription = subscription;
             if (currentSubscription != null) {
                 currentSubscription.abort();
@@ -839,7 +839,11 @@ public abstract class AbstractStreamMessageDuplicator<T, U extends StreamMessage
         }
 
         void abort() {
-            if (cancelledOrAbortedUpdater.compareAndSet(this, null, AbortedStreamException.get())) {
+            abort(AbortedStreamException.get());
+        }
+
+        void abort(Throwable error) {
+            if (cancelledOrAbortedUpdater.compareAndSet(this, null, error)) {
                 signal();
             }
         }

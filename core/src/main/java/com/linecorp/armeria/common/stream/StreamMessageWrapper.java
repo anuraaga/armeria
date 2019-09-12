@@ -149,8 +149,8 @@ public class StreamMessageWrapper<T> implements StreamMessage<T> {
     }
 
     @Override
-    public void abort() {
-        delegate().abort();
+    public void abort(Throwable error) {
+        delegate().abort(error);
     }
 
     @Override

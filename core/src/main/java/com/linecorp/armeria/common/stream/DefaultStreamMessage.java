@@ -129,10 +129,10 @@ public class DefaultStreamMessage<T> extends AbstractStreamMessageAndWriter<T> {
     }
 
     @Override
-    public void abort() {
+    public void abort(Throwable error) {
         final SubscriptionImpl currentSubscription = subscription;
         if (currentSubscription != null) {
-            cancelOrAbort(false);
+            cancelOrAbort(false, error);
             return;
         }
 
@@ -142,7 +142,7 @@ public class DefaultStreamMessage<T> extends AbstractStreamMessageAndWriter<T> {
             // We don't need to invoke onSubscribe() for AbortingSubscriber because it's just a placeholder.
             invokedOnSubscribe = true;
         }
-        cancelOrAbort(false);
+        cancelOrAbort(false, error);
     }
 
     @Override
@@ -184,7 +184,7 @@ public class DefaultStreamMessage<T> extends AbstractStreamMessageAndWriter<T> {
 
     @Override
     void cancel() {
-        cancelOrAbort(true);
+        cancelOrAbort(true, null);
     }
 
     @Override
@@ -198,10 +198,12 @@ public class DefaultStreamMessage<T> extends AbstractStreamMessageAndWriter<T> {
         }
     }
 
-    private void cancelOrAbort(boolean cancel) {
+    private void cancelOrAbort(boolean cancel, @Nullable Throwable error) {
         if (setState(State.OPEN, State.CLEANUP)) {
             final CloseEvent closeEvent;
-            if (cancel) {
+            if (error != null) {
+                closeEvent = new CloseEvent(error);
+            } else if (cancel) {
                 closeEvent = Flags.verboseExceptions() ?
                              new CloseEvent(CancelledSubscriptionException.get()) : CANCELLED_CLOSE;
             } else {

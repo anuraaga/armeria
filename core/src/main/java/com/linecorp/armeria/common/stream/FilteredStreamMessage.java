@@ -240,8 +240,8 @@ public abstract class FilteredStreamMessage<T, U> implements StreamMessage<U> {
     }
 
     @Override
-    public void abort() {
-        delegate.abort();
+    public void abort(Throwable error) {
+        delegate.abort(error);
     }
 
     private final class FilteringSubscriber implements Subscriber<T> {

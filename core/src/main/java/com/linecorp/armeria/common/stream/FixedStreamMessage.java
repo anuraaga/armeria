@@ -132,26 +132,28 @@ abstract class FixedStreamMessage<T> extends AbstractStreamMessage<T> {
 
     @Override
     final void cancel() {
-        cancelOrAbort(true);
+        cancelOrAbort(true, null);
     }
 
     @Override
-    public final void abort() {
+    public final void abort(Throwable error) {
         final SubscriptionImpl currentSubscription = subscription;
         if (currentSubscription != null) {
-            cancelOrAbort(false);
+            cancelOrAbort(false, error);
             return;
         }
 
         final SubscriptionImpl newSubscription = new SubscriptionImpl(
                 this, AbortingSubscriber.get(), ImmediateEventExecutor.INSTANCE, false, false);
         subscriptionUpdater.compareAndSet(this, null, newSubscription);
-        cancelOrAbort(false);
+        cancelOrAbort(false, error);
     }
 
-    private void cancelOrAbort(boolean cancel) {
+    private void cancelOrAbort(boolean cancel, @Nullable Throwable error) {
         final CloseEvent closeEvent;
-        if (cancel) {
+        if (error != null) {
+            closeEvent = new CloseEvent(error);
+        } else if (cancel) {
             closeEvent = Flags.verboseExceptions() ?
                          new CloseEvent(CancelledSubscriptionException.get()) : CANCELLED_CLOSE;
         } else {

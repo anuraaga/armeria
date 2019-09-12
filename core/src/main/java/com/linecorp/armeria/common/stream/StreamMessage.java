@@ -384,5 +384,15 @@ public interface StreamMessage<T> extends Publisher<T> {
      * an {@link AbortedStreamException} via {@link Subscriber#onError(Throwable)}. Calling this method
      * on a closed or aborted stream has no effect.
      */
-    void abort();
+    default void abort() {
+        abort(AbortedStreamException.get());
+    }
+    /**
+     *
+     * Closes this stream with {@code error} and prevents further subscription.
+     * A {@link Subscriber} that attempts to subscribe to an aborted stream will be notified with
+     * an the provided {@link Throwable} via {@link Subscriber#onError(Throwable)}. Calling this method
+     * on a closed or aborted stream has no effect.
+     */
+    void abort(Throwable error);
 }

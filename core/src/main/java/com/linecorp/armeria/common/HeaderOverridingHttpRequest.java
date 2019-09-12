@@ -152,8 +152,8 @@ final class HeaderOverridingHttpRequest implements HttpRequest {
     }
 
     @Override
-    public void abort() {
-        delegate.abort();
+    public void abort(Throwable error) {
+        delegate.abort(error);
     }
 
     @Override
