@@ -877,11 +877,7 @@ public class GrpcClientTest {
     public void deadlineNotExceeded() {
         // warm up the channel and JVM
         blockingStub.emptyCall(Empty.getDefaultInstance());
-        final TestServiceBlockingStub stub =
-                Clients.newDerivedClient(
-                        blockingStub,
-                        ClientOption.RESPONSE_TIMEOUT_MILLIS.newValue(
-                                TimeUnit.SECONDS.toMillis(10)));
+        final TestServiceBlockingStub stub = blockingStub.withDeadlineAfter(10, TimeUnit.SECONDS);
         stub
                 .streamingOutputCall(
                         StreamingOutputCallRequest.newBuilder()
@@ -898,10 +894,7 @@ public class GrpcClientTest {
         blockingStub.emptyCall(Empty.getDefaultInstance());
         requestLogQueue.take();
 
-        final TestServiceBlockingStub stub =
-                Clients.newDerivedClient(
-                        blockingStub,
-                        ClientOption.RESPONSE_TIMEOUT_MILLIS.newValue(10L));
+        final TestServiceBlockingStub stub = blockingStub.withDeadlineAfter(10, TimeUnit.MILLISECONDS);
         final StreamingOutputCallRequest request =
                 StreamingOutputCallRequest.newBuilder()
                                           .addResponseParameters(
@@ -914,8 +907,7 @@ public class GrpcClientTest {
                 .isEqualTo(Status.DEADLINE_EXCEEDED.getCode());
 
         checkRequestLogError((headers, rpcReq, cause) -> {
-            assertThat(rpcReq).isNotNull();
-            assertThat(rpcReq.params()).containsExactly(request);
+            assertThat(rpcReq).isNull();
             assertResponseTimeoutExceptionOrDeadlineExceeded(cause);
         });
     }
@@ -938,10 +930,7 @@ public class GrpcClientTest {
                                           .addResponseParameters(responseParameters)
                                           .build();
         final StreamRecorder<StreamingOutputCallResponse> recorder = StreamRecorder.create();
-        final TestServiceStub stub =
-                Clients.newDerivedClient(
-                        asyncStub,
-                        ClientOption.RESPONSE_TIMEOUT_MILLIS.newValue(30L));
+        final TestServiceStub stub = asyncStub.withDeadlineAfter(30, TimeUnit.MILLISECONDS);
         stub.streamingOutputCall(request, recorder);
         recorder.awaitCompletion();
 
@@ -964,8 +953,9 @@ public class GrpcClientTest {
         if (cause instanceof ResponseTimeoutException) {
             return;
         }
-        if (cause instanceof StatusException) {
-            assertThat(((StatusException) cause).getStatus().getCode()).isEqualTo(Code.DEADLINE_EXCEEDED);
+        if (cause instanceof StatusRuntimeException) {
+            assertThat(((StatusRuntimeException) cause).getStatus().getCode())
+                    .isEqualTo(Code.DEADLINE_EXCEEDED);
             return;
         }
         fail("cause must be a ResponseTimeoutException or a StatusException: ", cause);

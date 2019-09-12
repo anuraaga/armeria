@@ -81,6 +81,8 @@ public class DefaultClientRequestContext extends NonWrappingRequestContext imple
 
     private long writeTimeoutMillis;
     private long responseTimeoutMillis;
+    @Nullable
+    private Runnable responseTimeoutHandler;
     private long maxResponseLength;
 
     @SuppressWarnings("FieldMayBeFinal") // Updated via `additionalRequestHeadersUpdater`
@@ -326,6 +328,11 @@ public class DefaultClientRequestContext extends NonWrappingRequestContext imple
     @Override
     public long responseTimeoutMillis() {
         return responseTimeoutMillis;
+    }
+
+    @Override
+    public void setResponseTimeoutHandler(Runnable responseTimeoutHandler) {
+        this.responseTimeoutHandler = requireNonNull(responseTimeoutHandler, "responseTimeoutHandler");
     }
 
     @Override

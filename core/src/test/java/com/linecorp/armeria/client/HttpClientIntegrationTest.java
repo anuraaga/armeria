@@ -333,6 +333,11 @@ class HttpClientIntegrationTest {
                 return HttpResponse.of(HttpStatus.INTERNAL_SERVER_ERROR);
             });
 
+            sb.service("/client-timeout", (ctx, req) -> {
+                // Don't need to return a real response since the client will timeout.
+                return HttpResponse.streaming();
+            });
+
             // To check https://github.com/line/armeria/issues/1895
             sb.serviceUnder("/", (ctx, req) -> {
                 if (!completed.compareAndSet(false, true)) {
