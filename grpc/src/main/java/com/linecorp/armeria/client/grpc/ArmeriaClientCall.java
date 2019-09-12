@@ -179,6 +179,23 @@ class ArmeriaClientCall<I, O> extends ClientCall<I, O>
 
         res.subscribe(responseReader, ctx.eventLoop(), WITH_POOLED_OBJECTS);
         res.completionFuture().handleAsync(responseReader, ctx.eventLoop());
+
+        if (callOptions.getDeadline() != null) {
+            long remainingMillis = callOptions.getDeadline().timeRemaining(TimeUnit.MILLISECONDS);
+            if (remainingMillis <= 0) {
+                req.abort(Status.DEADLINE_EXCEEDED
+                                  .augmentDescription(
+                                          "ClientCall started after deadline exceeded: " +
+                                          callOptions.getDeadline()).asRuntimeException());
+            } else {
+                ctx.setResponseTimeoutMillis(remainingMillis);
+                ctx.setResponseTimeoutHandler(() -> {
+                    req.abort(Status.DEADLINE_EXCEEDED.augmentDescription(
+                            "deadline exceeded after " +
+                            TimeUnit.MILLISECONDS.toNanos(remainingMillis) + "ns.").asRuntimeException());
+                });
+            }
+        }
     }
 
     @Override
