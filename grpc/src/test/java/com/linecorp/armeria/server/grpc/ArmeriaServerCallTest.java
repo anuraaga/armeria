@@ -44,8 +44,10 @@ import com.linecorp.armeria.common.HttpHeaders;
 import com.linecorp.armeria.common.HttpMethod;
 import com.linecorp.armeria.common.HttpRequest;
 import com.linecorp.armeria.common.HttpResponseWriter;
+import com.linecorp.armeria.common.HttpStatus;
+import com.linecorp.armeria.common.ResponseHeaders;
 import com.linecorp.armeria.common.grpc.GrpcSerializationFormats;
-import com.linecorp.armeria.common.grpc.protocol.ArmeriaMessageDeframer.ByteBufOrStream;
+import com.linecorp.armeria.common.grpc.protocol.ArmeriaMessageDeframer.DeframedMessage;
 import com.linecorp.armeria.grpc.testing.Messages.SimpleRequest;
 import com.linecorp.armeria.grpc.testing.Messages.SimpleResponse;
 import com.linecorp.armeria.grpc.testing.TestServiceGrpc;
@@ -116,7 +118,10 @@ public class ArmeriaServerCallTest {
                 MessageMarshaller.builder().build(),
                 false,
                 false,
-                "gzip");
+                "gzip",
+                ResponseHeaders.builder(HttpStatus.OK)
+                               .contentType(GrpcSerializationFormats.PROTO.mediaType())
+                               .build());
         call.setListener(listener);
         call.messageReader().onSubscribe(subscription);
 
@@ -138,7 +143,7 @@ public class ArmeriaServerCallTest {
 
         // messageRead is always called from the event loop.
         eventLoop.get().submit(() -> {
-            call.messageRead(new ByteBufOrStream(GrpcTestUtil.requestByteBuf()));
+            call.messageRead(new DeframedMessage(GrpcTestUtil.requestByteBuf(), 0));
 
             verify(listener, never()).onMessage(any());
         }).syncUninterruptibly();
@@ -147,7 +152,7 @@ public class ArmeriaServerCallTest {
     @Test
     public void messageRead_notWrappedByteBuf() {
         final ByteBuf buf = GrpcTestUtil.requestByteBuf();
-        call.messageRead(new ByteBufOrStream(buf));
+        call.messageRead(new DeframedMessage(buf, 0));
 
         verifyZeroInteractions(buffersAttr);
     }
@@ -169,10 +174,13 @@ public class ArmeriaServerCallTest {
                 MessageMarshaller.builder().build(),
                 true,
                 false,
-                "gzip");
+                "gzip",
+                ResponseHeaders.builder(HttpStatus.OK)
+                               .contentType(GrpcSerializationFormats.PROTO.mediaType())
+                               .build());
 
         final ByteBuf buf = GrpcTestUtil.requestByteBuf();
-        call.messageRead(new ByteBufOrStream(buf));
+        call.messageRead(new DeframedMessage(buf, 0));
 
         verify(buffersAttr).put(any(), same(buf));
     }
@@ -183,7 +191,8 @@ public class ArmeriaServerCallTest {
 
         // messageRead is always called from the event loop.
         eventLoop.get().submit(() -> {
-            call.messageRead(new ByteBufOrStream(new ByteBufInputStream(GrpcTestUtil.requestByteBuf(), true)));
+            call.messageRead(new DeframedMessage(new ByteBufInputStream(GrpcTestUtil.requestByteBuf(), true),
+                                                 0));
 
             verify(listener, never()).onMessage(any());
         }).syncUninterruptibly();

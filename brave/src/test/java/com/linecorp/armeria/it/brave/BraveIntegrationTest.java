@@ -141,7 +141,7 @@ public class BraveIntegrationTest {
                                             countDownLatch.countDown();
                                             countDownLatch.await();
                                         }
-                                        brave.Span span = Tracing.currentTracer().nextSpan().start();
+                                        final brave.Span span = Tracing.currentTracer().nextSpan().start();
                                         try (SpanInScope spanInScope =
                                                      Tracing.currentTracer().withSpanInScope(span)) {
                                             if (i == 1) {
@@ -162,8 +162,8 @@ public class BraveIntegrationTest {
                                    result -> allAsList(IntStream.range(1, 3).mapToObj(
                                            i -> executorService.submit(
                                                    RequestContext.current().makeContextAware(() -> {
-                                                       ScopedSpan span = Tracing.currentTracer()
-                                                                                .startScopedSpan("aloha");
+                                                       final ScopedSpan span = Tracing.currentTracer()
+                                                                                      .startScopedSpan("aloha");
                                                        try {
                                                            return null;
                                                        } finally {
@@ -292,25 +292,29 @@ public class BraveIntegrationTest {
         assertThat(clientQuxSpan.localServiceName()).isEqualTo("client/qux");
         assertThat(serviceQuxSpan.localServiceName()).isEqualTo("service/qux");
 
+        // Check RPC request can update http request.
+        assertThat(clientFooSpan.tags().get("http.protocol")).isEqualTo("h2c");
+        assertThat(clientFooSpan.tags().get("http.host")).startsWith("127.0.0.1");
+
         // Check the span names.
         assertThat(spans).allMatch(s -> "hello".equals(s.name()));
 
         // Check wire times
         final long clientStartTime = clientFooSpan.timestampAsLong();
         final long clientWireSendTime = clientFooSpan.annotations().stream()
-                                                     .filter(a -> a.value().equals("ws"))
+                                                     .filter(a -> "ws".equals(a.value()))
                                                      .findFirst().get().timestamp();
         final long clientWireReceiveTime = clientFooSpan.annotations().stream()
-                                                        .filter(a -> a.value().equals("wr"))
+                                                        .filter(a -> "wr".equals(a.value()))
                                                         .findFirst().get().timestamp();
         final long clientEndTime = clientStartTime + clientFooSpan.durationAsLong();
 
         final long serverStartTime = serviceFooSpan.timestampAsLong();
         final long serverWireSendTime = serviceFooSpan.annotations().stream()
-                                                      .filter(a -> a.value().equals("ws"))
+                                                      .filter(a -> "ws".equals(a.value()))
                                                       .findFirst().get().timestamp();
         final long serverWireReceiveTime = serviceFooSpan.annotations().stream()
-                                                         .filter(a -> a.value().equals("wr"))
+                                                         .filter(a -> "wr".equals(a.value()))
                                                          .findFirst().get().timestamp();
         final long serverEndTime = serverStartTime + serviceFooSpan.durationAsLong();
 
