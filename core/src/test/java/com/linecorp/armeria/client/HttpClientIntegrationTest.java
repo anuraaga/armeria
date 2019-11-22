@@ -815,6 +815,26 @@ class HttpClientIntegrationTest {
         }
     }
 
+    @Test
+    void windowsDnsTest() {
+        final ClientFactory factory = ClientFactory
+                .builder()
+                .domainNameResolverCustomizer(resolver -> resolver.traceEnabled(true))
+                .build();
+        final WebClient client = WebClient.of(factory, "http://echo.jsontest.com");
+        client.get("/").aggregate().join();
+    }
+
+    @Test
+    void windowsDnsTest2() {
+        final ClientFactory factory = ClientFactory
+                .builder()
+                .domainNameResolverCustomizer(resolver -> resolver.traceEnabled(true))
+                .build();
+        final WebClient client = WebClient.of(factory, "http://json.org");
+        client.get("/").aggregate().join();
+    }
+
     private static void checkGetRequest(String path, WebClient client) throws Exception {
         final AggregatedHttpResponse response = client.get(path).aggregate().get();
         assertThat(response.contentUtf8()).isEqualTo("success");
