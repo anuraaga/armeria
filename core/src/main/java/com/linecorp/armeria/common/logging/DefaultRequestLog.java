@@ -37,7 +37,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.function.Function;
 
 import javax.annotation.Nullable;
@@ -67,12 +66,12 @@ import io.netty.util.Attribute;
 import io.netty.util.AttributeKey;
 
 /**
- * Default {@link RequestLog} implementation.
+ * Default {@link RequestLog} implementation. All methods in {@link RequestLogBuilder}, except for
+ * {@link RequestLogBuilder#isRequestContentDeferred()} and
+ * {@link RequestLogBuilder#isResponseContentDeferred()} must be invoked from the event loop thread processing
+ * this log, which is {@link RequestContext#eventLoop()} for the context passed in during construction.
  */
 public class DefaultRequestLog implements RequestLog, RequestLogBuilder {
-
-    private static final AtomicIntegerFieldUpdater<DefaultRequestLog> flagsUpdater =
-            AtomicIntegerFieldUpdater.newUpdater(DefaultRequestLog.class, "flags");
 
     private static final int FLAGS_REQUEST_END_WITHOUT_CONTENT =
             REQUEST_END.setterFlags() & ~REQUEST_CONTENT.setterFlags();
@@ -97,10 +96,6 @@ public class DefaultRequestLog implements RequestLog, RequestLogBuilder {
     private List<RequestLog> children;
     private boolean hasLastChild;
 
-    /**
-     * Updated by {@link #flagsUpdater}.
-     */
-    @SuppressWarnings("unused")
     private volatile int flags;
     private final List<ListenerEntry> listeners = new ArrayList<>(4);
     private volatile boolean requestContentDeferred;
@@ -154,9 +149,12 @@ public class DefaultRequestLog implements RequestLog, RequestLogBuilder {
     private Object rawResponseContent;
 
     private volatile int requestStrFlags = -1;
-    private volatile int responseStrFlags = -1;
+    // requestStrFlags is memory barrier
     @Nullable
     private String requestStr;
+
+    private volatile int responseStrFlags = -1;
+    // responseStrFlags is memory barrier
     @Nullable
     private String responseStr;
 
@@ -989,20 +987,17 @@ public class DefaultRequestLog implements RequestLog, RequestLogBuilder {
     }
 
     private void updateAvailability(int flags) {
-        for (;;) {
-            final int oldAvailability = this.flags;
-            final int newAvailability = oldAvailability | flags;
-            if (flagsUpdater.compareAndSet(this, oldAvailability, newAvailability)) {
-                if (oldAvailability != newAvailability) {
-                    final RequestLogListener[] satisfiedListeners;
-                    synchronized (listeners) {
-                        satisfiedListeners = removeSatisfiedListeners();
-                    }
-                    if (satisfiedListeners != null) {
-                        invokeOnRequestLog(satisfiedListeners, this);
-                    }
-                }
-                break;
+        final int oldAvailability = this.flags;
+        final int newAvailability = oldAvailability | flags;
+        if (oldAvailability != newAvailability) {
+            this.flags = newAvailability;
+
+            final RequestLogListener[] satisfiedListeners;
+            synchronized (listeners) {
+                satisfiedListeners = removeSatisfiedListeners();
+            }
+            if (satisfiedListeners != null) {
+                invokeOnRequestLog(satisfiedListeners, this);
             }
         }
     }
@@ -1084,6 +1079,7 @@ public class DefaultRequestLog implements RequestLog, RequestLogBuilder {
 
         final int flags = this.flags & 0xFFFF; // Only interested in the bits related with request.
         if (requestStrFlags == flags) {
+            assert requestStr != null;
             return requestStr;
         }
 
@@ -1196,6 +1192,7 @@ public class DefaultRequestLog implements RequestLog, RequestLogBuilder {
 
         final int flags = this.flags & 0xFFFF0000; // Only interested in the bits related with response.
         if (responseStrFlags == flags) {
+            assert responseStr != null;
             return responseStr;
         }
 
